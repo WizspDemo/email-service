@@ -1,0 +1,14 @@
+{
+  "name": "email-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-tenant email sending service (SMTP + Office 365 Graph)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "nodemailer": "^6.9.14"
+  }
+}

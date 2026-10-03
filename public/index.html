@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Service — Test Console</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --card: #121a2b;
+    --border: #243049;
+    --fg: #e6edf7;
+    --muted: #8a96ab;
+    --accent: #34d399;
+    --accent2: #22d3ee;
+    --danger: #fb7185;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 2rem;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+  p.sub { color: var(--muted); margin-top: 0; margin-bottom: 1.5rem; font-size: 0.85rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card h2 { font-size: 1rem; margin: 0 0 1rem 0; color: var(--accent2); }
+  label { display: block; font-size: 0.8rem; color: var(--muted); margin-top: 0.75rem; margin-bottom: 0.25rem; }
+  input, select, textarea {
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #0d1626;
+    color: var(--fg);
+    font-size: 0.9rem;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  button {
+    margin-top: 1rem;
+    padding: 0.55rem 1.2rem;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: #04140c;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  button.secondary { background: var(--accent2); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .row { display: flex; gap: 1rem; }
+  .row > div { flex: 1; }
+  .status { margin-top: 0.75rem; font-size: 0.85rem; white-space: pre-wrap; }
+  .status.ok { color: var(--accent); }
+  .status.err { color: var(--danger); }
+  .provider-block { display: none; }
+  .provider-block.active { display: block; }
+  .hint { color: var(--muted); font-size: 0.75rem; margin-top: 0.3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📧 Email Service — Test Console</h1>
+  <p class="sub">Ρύθμιση provider (SMTP / Office 365) και δοκιμαστική αποστολή email.</p>
+
+  <div class="card">
+    <h2>🔑 Admin Key</h2>
+    <label>Admin Key (απαιτείται για να σωθεί το config)</label>
+    <input type="password" id="adminKey" placeholder="X-Admin-Key">
+    <div class="hint">Δεν αποθηκεύεται πουθενά εκτός browser tab σου.</div>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ Ρύθμιση Provider</h2>
+
+    <label>Provider</label>
+    <select id="provider">
+      <option value="smtp">SMTP (απλός λογαριασμός email)</option>
+      <option value="o365">Office 365 / Microsoft Graph</option>
+    </select>
+
+    <label>From address (το email που θα εμφανίζεται ως αποστολέας)</label>
+    <input type="email" id="fromAddress" placeholder="notifications@example.com">
+
+    <div id="smtpBlock" class="provider-block active">
+      <div class="row">
+        <div>
+          <label>SMTP Host</label>
+          <input type="text" id="smtpHost" placeholder="mail.example.com">
+        </div>
+        <div>
+          <label>Port</label>
+          <input type="number" id="smtpPort" placeholder="587" value="587">
+        </div>
+      </div>
+      <label><input type="checkbox" id="smtpSecure" style="width:auto;display:inline-block;margin-right:6px;">Secure (SSL) — ενεργό μόνο για port 465</label>
+      <label>Username</label>
+      <input type="text" id="smtpUser" placeholder="notifications@example.com">
+      <label>Password</label>
+      <input type="password" id="smtpPass" placeholder="••••••••">
+    </div>
+
+    <div id="o365Block" class="provider-block">
+      <label>Azure Tenant ID</label>
+      <input type="text" id="o365TenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      <label>Client ID (App Registration)</label>
+      <input type="text" id="o365ClientId" placeholder="App's Application (client) ID">
+      <label>Client Secret</label>
+      <input type="password" id="o365ClientSecret" placeholder="••••••••">
+      <label>Mailbox (το email που στέλνει)</label>
+      <input type="email" id="o365Mailbox" placeholder="noreply@example.com">
+    </div>
+
+    <button id="saveConfigBtn">💾 Αποθήκευση ρύθμισης</button>
+    <div id="configStatus" class="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>✉️ Δοκιμαστική Αποστολή</h2>
+    <label>Προς (to)</label>
+    <input type="email" id="to" placeholder="paralhptis@example.com">
+    <label>Θέμα</label>
+    <input type="text" id="subject" placeholder="Δοκιμαστικό email">
+    <label>Περιεχόμενο</label>
+    <textarea id="body" placeholder="Γράψε εδώ το περιεχόμενο...">Αυτό είναι ένα δοκιμαστικό email από το Email Service.</textarea>
+    <button id="sendBtn" class="secondary">🚀 Αποστολή</button>
+    <div id="sendStatus" class="status"></div>
+  </div>
+</div>
+
+<script>
+  const providerSelect = document.getElementById('provider');
+  const smtpBlock = document.getElementById('smtpBlock');
+  const o365Block = document.getElementById('o365Block');
+
+  providerSelect.addEventListener('change', () => {
+    const isSmtp = providerSelect.value === 'smtp';
+    smtpBlock.classList.toggle('active', isSmtp);
+    o365Block.classList.toggle('active', !isSmtp);
+  });
+
+  document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+    const statusEl = document.getElementById('configStatus');
+    statusEl.textContent = 'Αποθήκευση...';
+    statusEl.className = 'status';
+
+    const adminKey = document.getElementById('adminKey').value;
+    const provider = providerSelect.value;
+    const fromAddress = document.getElementById('fromAddress').value;
+
+    const payload = { provider, fromAddress };
+    if (provider === 'smtp') {
+      payload.smtp = {
+        host: document.getElementById('smtpHost').value,
+        port: document.getElementById('smtpPort').value,
+        secure: document.getElementById('smtpSecure').checked,
+        user: document.getElementById('smtpUser').value,
+        pass: document.getElementById('smtpPass').value,
+      };
+    } else {
+      payload.o365 = {
+        tenantId: document.getElementById('o365TenantId').value,
+        clientId: document.getElementById('o365ClientId').value,
+        clientSecret: document.getElementById('o365ClientSecret').value,
+        mailbox: document.getElementById('o365Mailbox').value,
+      };
+    }
+
+    try {
+      const res = await fetch('/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Άγνωστο σφάλμα');
+      statusEl.textContent = '✅ Αποθηκεύτηκε επιτυχώς.';
+      statusEl.className = 'status ok';
+    } catch (err) {
+      statusEl.textContent = '❌ ' + err.message;
+      statusEl.className = 'status err';
+    }
+  });
+
+  document.getElementById('sendBtn').addEventListener('click', async () => {
+    const statusEl = document.getElementById('sendStatus');
+    statusEl.textContent = 'Αποστολή...';
+    statusEl.className = 'status';
+
+    const payload = {
+      to: document.getElementById('to').value,
+      subject: document.getElementById('subject').value,
+      body: document.getElementById('body').value,
+    };
+
+    try {
+      const res = await fetch('/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Άγνωστο σφάλμα');
+      statusEl.textContent = '✅ Στάλθηκε! ' + JSON.stringify(data.result);
+      statusEl.className = 'status ok';
+    } catch (err) {
+      statusEl.textContent = '❌ ' + err.message;
+      statusEl.className = 'status err';
+    }
+  });
+</script>
+</body>
+</html>
